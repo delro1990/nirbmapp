@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Budget Monitor – Obligation Rate & Status of Funds</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1>Budget Monitor</h1><div class="sub">Obligation rate &amp; status of funds per fund source · amounts in PHP · <span id="sync">Loading…</span></div></div>
+  <div class="hdr-right">
+  <div class="row" style="margin:0;flex:0 0 auto">
+    <label style="min-width:130px">Obligation target (%)<input id="target" type="number" min="0" max="100" value="90"></label>
+  </div>
+  <div class="row" style="margin:0;flex:0 0 auto;align-items:center">
+    <span class="pill" id="roleBadge" style="background:var(--mut);flex:0 0 auto;min-width:0">View only</span>
+    <button id="btnLogin" class="pri viewer-only" style="flex:0 0 auto;min-width:0">Admin login</button>
+    <button id="btnLogout" class="admin-only" style="flex:0 0 auto;min-width:0">Log out</button>
+  </div>
+  </div>
+</header>
+<div class="err hide" id="err" role="alert"></div>
+<button id="menuBtn" type="button" class="menu-btn" aria-expanded="false" aria-controls="tabs">☰ Menu: <span id="menuLabel">Dashboard</span></button>
+<nav id="tabs">
+  <button data-t="dash" class="on">Dashboard</button>
+  <button data-t="recs">Records (UACS)</button>
+  <button data-t="funds">Fund Sources</button>
+  <button data-t="admin" class="admin-only">Admin</button>
+</nav>
+
+<section id="dash">
+  <div class="card">
+    <button id="filtBtn" type="button" class="filt-btn">☰ Search &amp; filters</button>
+    <div id="filtBody"><div class="row">
+      <label style="flex:2 1 260px">Search fund source, UACS, description, PAP or office<input id="d_txt" type="search" placeholder="e.g. 01101101, Training, Regional Office 02…"></label>
+      <label>Fund source<select id="d_fund"></select></label>
+      <label>Obligation period<select id="d_per"><option value="all">All periods</option><option value="year">Yearly</option><option value="quarter">Quarterly</option><option value="month">Monthly</option><option value="range">Specific date range</option></select></label>
+      <label id="w_year" class="hide">Year<select id="d_year"></select></label>
+      <label id="w_q" class="hide">Quarter<select id="d_q"><option value="1">Q1 (Jan–Mar)</option><option value="2">Q2 (Apr–Jun)</option><option value="3">Q3 (Jul–Sep)</option><option value="4">Q4 (Oct–Dec)</option></select></label>
+      <label id="w_m" class="hide">Month<select id="d_m"><option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select></label>
+      <label id="w_from" class="hide">From<input type="date" id="d_from"></label>
+      <label id="w_to" class="hide">To<input type="date" id="d_to"></label>
+      <button id="d_clear" style="flex:0 0 auto">Clear</button>
+    </div></div>
+    <div class="sub" id="dInfo"></div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="pies" id="pies1"></div>
+  <h2 class="sec">Status of funds per fund source</h2>
+  <div class="pies" id="pies2"></div>
+  <h2 class="sec">Status of funds per expense class</h2>
+  <div class="pies" id="pies3"></div>
+  <div class="card" style="margin-top:14px"><h2>Detailed tables</h2><div class="scroll"><table id="fundTbl"></table></div><br><div class="scroll"><table id="classTbl"></table></div></div>
+</section>
+
+<section id="recs" class="hide">
+  <div class="card admin-only">
+    <h2 id="formTitle">Add allotment / obligation record</h2>
+    <div class="grid">
+      <label>Fund Source<select id="f_fund"></select></label>
+      <label>UACS Object Code<input id="f_uacs" placeholder="e.g. 5020101000" maxlength="10" inputmode="numeric"></label>
+      <label>Object description<input id="f_desc" placeholder="e.g. Traveling Expenses–Local"></label>
+      <label>Expense class<select id="f_cls"><option value="PS">PS – Personnel Services</option><option value="MOOE">MOOE</option><option value="CO">CO – Capital Outlay</option></select></label>
+      <label>Program / PAP<input id="f_pap" placeholder="e.g. Health Facilities Enhancement"></label>
+      <label>Operating unit<input id="f_office" placeholder="e.g. Central Office"></label>
+      <label>Allotment (released)<input id="f_allot" type="number" min="0" step="0.01"></label>
+      <label>Obligations<input id="f_oblig" type="number" min="0" step="0.01"></label>
+      <label>Disbursements<input id="f_disb" type="number" min="0" step="0.01"></label>
+      <label>Obligation date<input id="f_date" type="date"></label>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="row" style="margin-top:8px;flex:none"><button class="pri" id="save" style="flex:0 0 auto">Save record</button><button id="cancel" class="hide" style="flex:0 0 auto">Cancel edit</button></div>
+  </div>
+  <div class="card">
+    <div class="row">
+      <label>Filter by fund source<select id="q_fund"></select></label>
+      <label>Search UACS / description / PAP / office<input id="q_txt" placeholder="Search…"></label>
+    </div>
+    <div class="scroll"><table id="recTbl"></table></div>
+  </div>
+</section>
+
+<section id="funds" class="hide">
+  <div class="card admin-only">
+    <h2>Add fund source</h2>
+    <div class="row">
+      <label>Fund source code (UACS)<input id="n_code" placeholder="e.g. 01101101" maxlength="8" inputmode="numeric"></label>
+      <label>Description<input id="n_name" placeholder="e.g. Regular Agency Fund – Current Year GAA"></label>
+      <button class="pri" id="addFund" style="flex:0 0 auto">Add</button>
+    </div>
+    <div class="msg" id="fmsg"></div>
+    <div class="sub">Codes below are samples. Edit them to match the codes in your agency’s FAR/SAOB before using real data.</div>
+  </div>
+  <div class="card scroll"><table id="fundList"></table></div>
+  <button id="reset" class="admin-only">Reset to sample data</button>
+</section>
+<section id="admin" class="hide">
+  <div class="card hide" id="pwWarn" style="border-color:var(--warn)"><b>Security notice:</b> you are still using the default password. Change it below.</div>
+  <div class="card">
+    <h2>My account</h2>
+    <div class="sub" id="acctInfo"></div>
+    <div id="acctPw">
+      <h2 style="margin-top:12px">Update password</h2>
+      <div class="grid">
+        <label>Current password<input id="a_cur" type="password" autocomplete="current-password"></label>
+        <label>New password (letters &amp; numbers, min. 8)<input id="a_new" type="password" autocomplete="new-password"></label>
+        <label>Confirm new password<input id="a_new2" type="password" autocomplete="new-password"></label>
+      </div>
+      <div class="row" style="margin:8px 0 0"><button class="pri" id="a_pw" style="flex:0 0 auto">Update password</button></div>
+      <div class="msg" id="m_pw"></div>
+      <div class="sep"></div>
+      <h2>Email &amp; password reset</h2>
+      <div class="grid">
+        <label>Email (for forgot-password)<input id="a_email" type="email" autocomplete="email"></label>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:18px"><input id="a_reset" type="checkbox" style="width:auto;margin:0"> Allow password reset via email</label>
+      </div>
+      <div class="row" style="margin:8px 0 0"><button class="pri" id="a_save" style="flex:0 0 auto">Save email settings</button></div>
+      <div class="msg" id="m_acct"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Register new admin</h2>
+    <div class="grid">
+      <label>Username (max. 12 characters)<input id="g_user" maxlength="12" autocomplete="off"></label>
+      <label>Password (letters &amp; numbers, min. 8)<input id="g_pass" type="password" autocomplete="new-password"></label>
+      <label>Email<input id="g_email" type="email" autocomplete="off"></label>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:18px"><input id="g_reset" type="checkbox" style="width:auto;margin:0" checked> Allow password reset via email</label>
+    </div>
+    <div class="row" style="margin:8px 0 0"><button class="pri" id="g_go" style="flex:0 0 auto">Register admin</button></div>
+    <div class="msg" id="m_reg"></div>
+  </div>
+  <div class="card scroll"><h2>Admin accounts</h2><table id="adminList"></table></div>
+  <div class="card">
+    <h2>Admin access by Google email</h2>
+    <div class="sub" style="margin-bottom:8px">People signed in to Google with these emails get admin (edit) access automatically, no password needed.</div>
+    <div class="row"><label>Email address<input id="e_email" type="email"></label><button class="pri" id="e_add" style="flex:0 0 auto">Add</button></div>
+    <div class="msg" id="m_email"></div>
+    <div class="scroll"><table id="emailList"></table></div>
+  </div>
+</section>
+</div>
+
+<div id="modal" class="modal hide"><div class="box">
+  <div id="v_login">
+    <h2>Admin login</h2>
+    <label>Username<input id="l_user" autocomplete="username"></label>
+    <label>Password<input id="l_pass" type="password" autocomplete="current-password"></label>
+    <div class="msg" id="m_login"></div>
+    <div class="row" style="margin-top:8px"><button class="pri" id="l_go">Log in</button><button id="l_cancel">Cancel</button></div>
+    <button class="lnk" id="l_forgot">Forgot password?</button>
+    <div id="gsi" style="margin-top:10px"></div>
+  </div>
+  <div id="v_forgot" class="hide">
+    <h2>Reset password</h2>
+    <label>Username or email<input id="r_id" autocomplete="off"></label>
+    <div class="row" style="margin:0 0 10px"><button id="r_send">Email me a code</button></div>
+    <label>Code from email<input id="r_code" autocomplete="off"></label>
+    <label>New password (letters &amp; numbers, min. 8)<input id="r_new" type="password" autocomplete="new-password"></label>
+    <div class="msg" id="m_reset"></div>
+    <div class="row" style="margin-top:8px"><button class="pri" id="r_go">Set new password</button><button id="r_back">Back</button></div>
+  </div>
+</div></div>
+
+<script src="/app.js" defer></script>
+</body>
+</html>
